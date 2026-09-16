@@ -109,7 +109,7 @@ Spring Boot application on 127.0.0.1:8080
 
 The portable profile binds the server to the loopback interface, so it is available only on the computer running it. It does not expose the scheduler to other computers on the office network.
 
-The repository still contains some backend, web-page, and mobile-prototype code inherited from the larger DentalWave application. Those retained modules are not part of the active manager-only Mini interface or the Windows portable workflow.
+The backend still contains account-backed employee, time-off, and notification modules inherited from the larger DentalWave application. Current schedule generation and publication validation share parts of that model, although those workflows are not exposed as active Mini pages.
 
 ## Technology
 
@@ -229,7 +229,6 @@ The repository contains backend controller, service, repository, security, sched
 Dental-Scheduler-Mini/
 |-- DentalWave/             Spring Boot API, persistence, security, and tests
 |-- DentalWave-frontend/    Active React manager interface
-|-- DentalWave-mobile/      Retained employee mobile prototype; not packaged
 |-- portable/windows/       Windows launch, shutdown, backup, and diagnostics
 |-- portable/tests/         Static Windows launcher/path tests
 |-- docs/                   Screenshots and focused architecture/test notes
@@ -243,6 +242,5 @@ Dental-Scheduler-Mini/
 - Portable mode is local to one computer and is not a shared network or cloud database service.
 - Hibernate currently manages H2 schema updates; the repository does not include Flyway or Liquibase migrations.
 - Reusable team templates are not automatically applied during monthly generation.
-- The retained Expo mobile prototype is not included in the manager-focused portable build.
 - Windows startup, shutdown, backup/recovery, restart persistence, and physical printing should be verified on the target office computer and printer before release.
 - No automated end-to-end browser suite or application auto-update mechanism is included.

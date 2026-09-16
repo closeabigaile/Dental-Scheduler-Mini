@@ -1,5 +1,14 @@
 # IntelliJ
 .idea/
+*.iml
+*.iws
+*.ipr
+
+# Other editor/workspace metadata
+.vscode/
+.classpath
+.project
+.settings/
 
 # Node
 node_modules/
@@ -12,6 +21,10 @@ dist/
 .DS_Store
 __pycache__/
 *.py[cod]
+*.swp
+*.swo
+*.tmp
+*~
 
 # Environment variables
 .env
@@ -29,3 +42,13 @@ DentalWave/src/test/resources/applicationTest.properties
 *.mv.db
 *.trace.db
 DentalWave/target/
+
+# Local portable runtime state
+DentalWave/.local-data/
+DentalWave/data/
+DentalWave/logs/
+DentalWave/backups/
+*.pid
+*.secret
+*-initialized.flag
+DENTALWAVE DIAGNOSTICS.txt
