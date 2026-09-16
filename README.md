@@ -1,383 +1,248 @@
-# DentalWave
+# Dental Scheduler Mini
 
-**A multi-role scheduling and employee-workflow platform built around the real constraints of a multi-location dental practice.**
+Dental Scheduler Mini is a focused, manager-operated scheduling application for an orthodontic office. It was derived from the larger DentalWave project and reduced to the workflows needed to prepare, review, publish, and print monthly doctor/assistant schedules.
 
-DentalWave's overall design connects assistants, HR staff, managers, and administrators around employee records, availability, time-off requests, notifications, and monthly schedules. The main application is designed around a React client, Spring Boot API, and a private PostgreSQL database configured outside source control.
+The primary distribution is a self-contained Windows application that opens in the user's normal web browser. It runs only on the local computer and stores its data in an embedded H2 database, avoiding a hosted database subscription.
 
-The `portable-h2-database` branch explores a possible alternative to that main design: a smaller manager-focused edition that packages the application for local Windows use and replaces the external database requirement with file-backed H2 storage.
+## Purpose and audience
 
-> **Project status:** Functional portfolio/capstone project with multiple design variants. This README presents the main multi-role system as the overall product design and documents the portable H2 edition as an experimental branch. The automated results below were verified against the current portable checkout; neither variant should be treated as a production release.
+The application is designed for the office manager or administrator responsible for coordinating assistants across doctors and office locations. It provides a repeatable starting point for each month while keeping the generated schedule editable when real-world exceptions occur.
 
-## Overview
+Dental Scheduler Mini is intended to:
 
-### Overall application design
+- keep doctor work patterns separate from individual monthly schedules;
+- distribute active, office-eligible assistants across doctor teams;
+- prevent obvious same-day cross-office conflicts;
+- let a manager adjust individual dates without rewriting recurring rules; and
+- produce a compact Monday-through-Thursday schedule for printing.
 
-The main DentalWave design is the broader PostgreSQL-backed platform. Its domain model, API, and role-specific interfaces support four application authorities:
+The active web interface accepts manager and administrator accounts. Doctors and assistants are scheduling resources and do not need their own login accounts in the portable edition.
 
-- `ROLE_ASSISTANT` for an employee's own published schedule, profile, notifications, and time-off requests.
-- `ROLE_HR` for employee administration and time-off review.
-- `ROLE_MANAGER` for monthly calendar generation, editing, publishing, and printing.
-- `ROLE_ADMIN` for protected user administration and full operational access.
+## Implemented features
 
-The backend enforces ownership restrictions on employee-specific resources; for example, assistants can access their own requests and notifications rather than other employees' private records.
+### Doctors and assistants
 
-### Portable H2 alternative
+- Add, edit, activate/deactivate, and remove scheduling resources.
+- Assign a default office and one or more eligible offices.
+- Record normal workdays, colors, and notes.
+- Keep doctors and assistants as local scheduling records rather than application users.
 
-The current `portable-h2-database` checkout substantially adapts the main application for a different deployment constraint. Its active React router and login flow expose only manager and administrator scheduling workflows. Doctors and assistants can be stored as lightweight scheduling resources without login accounts, the built frontend is served from the Spring Boot JAR, and portable mode stores data in an H2 file beside the application.
+### Doctor work patterns
 
-This branch is a possible deployment and scope alternative—not a replacement for the full application on `main`. The broader multi-role code remains present because the portable work was built from the same platform.
+- Configure working and non-working rules by weekday.
+- Assign a doctor to an office for a recurring weekday.
+- Use an `EVERY_WEEK` rule or an anchored 2- to 12-week rotation.
+- Limit rules with optional effective start and end dates.
+- Preview resolved doctor assignments for the next four weeks.
+- Reject overlapping active rules for the same doctor and pattern position.
 
-## The Problem
+### Reusable teams
 
-Creating a dental-office schedule is more than placing names on a calendar:
+- Create named doctor/assistant team templates.
+- Assign a default office, color, notes, and active status.
+- Edit, duplicate, and delete templates.
 
-- A practice may operate at several locations.
-- Assistants, HR staff, and managers need different views and permissions.
-- Employee availability and time-off decisions affect scheduling work.
-- Each doctor can work different weekdays and offices.
-- Some doctor assignments alternate between locations on a multi-week rotation.
-- Assistants must be distributed without being assigned to two offices on the same day.
-- Managers need to correct exceptions without rewriting the recurring rules.
-- The final schedule must remain readable when printed on a single landscape page.
+Reusable teams are currently managed independently from monthly generation; generating a month does not automatically apply a saved team template.
 
-DentalWave models those constraints separately from each month's editable schedule. Recurring rules create a starting point; the manager remains in control of the published result.
+### Monthly schedules
 
-## Main Application Capabilities
+- Generate a draft calendar for each configured office.
+- Create daily doctor teams from the active doctor rules.
+- Randomly distribute active assistants who are eligible for the office.
+- Avoid assigning the same local assistant to more than one office on the same date during generation.
+- Regenerate and redistribute an unpublished monthly draft.
+- Add or remove an office location for a single date.
+- Create, rename, and remove daily teams.
+- Add and remove assistant assignments.
+- Add day notes and assignment-specific partial-day notes such as `out@2`.
+- Save a draft, publish a completed month, or return a published month to draft status.
 
-- **Authentication and roles:** JWT-based login for the platform's assistant, HR, manager, and administrator responsibilities.
-- **Employee management:** Employee profiles, work status, office assignments, responsibilities, and availability.
-- **Time-off workflow:** Employee requests, emergency flags, HR approval or denial, review comments, and schedule-impact notifications.
-- **Notifications:** In-application notifications for requests, decisions, new schedules, and post-publication schedule updates.
-- **Monthly scheduling:** Location-specific calendars, team assignments, draft/published states, and employee views of published assignments.
-- **Manager calendar tools:** Calendar generation, manual editing, office filtering, universal calendar views, and printable output.
-- **Authorization boundaries:** Role checks for privileged actions and ownership checks for employee-specific resources.
+Before publication, the backend checks for empty non-placeholder teams, duplicate assignments, inactive or invalid resources, office mismatches, and same-day double-booking. Retained account-backed employee assignments are also checked for approved time-off conflicts.
 
-## Portable Branch Features
+### Calendar and printing
 
-- **Manager scheduling workspace:** Dashboard and protected routes for schedules, doctors, assistants, teams, and print preview.
-- **Scheduling resources:** Manage doctors and assistants without requiring every person to have a login account.
-- **Doctor work rules:** Configure working or non-working days, office assignments, effective date ranges, and recurring or rotating patterns.
-- **Reusable teams:** Create, edit, duplicate, and delete doctor/assistant team templates.
-- **Monthly draft generation:** Create a calendar for every configured office and generate daily doctor teams from the active rules.
-- **Assistant distribution:** Assign active, office-eligible assistants across doctor teams while preventing same-day cross-office duplication during generation.
-- **Day-level editing:** Add or remove a location for one date, create or rename teams, move assistants, and record day notes or assignment-specific partial-day notes such as `out@2`.
-- **Publish validation:** Reject unsafe schedules containing duplicate assignments, inactive resources, office mismatches, empty non-placeholder teams, and—for account-backed employees—approved-time-off conflicts.
-- **Print workflow:** Preview and print a Monday-through-Thursday monthly calendar on US Letter landscape paper, with compact doctor labels, adjustable assistant-name sizing, notes, and office grouping.
-- **Portable Windows path:** Package the React build inside the Spring Boot JAR with a Windows x64 Java runtime, file-backed H2 data, first-run password setup, controlled shutdown, diagnostics, and rotating local backups.
+- Review schedules in a month view or a published universal calendar.
+- Filter published schedules by location.
+- Open a dedicated print preview.
+- Adjust assistant-name sizing.
+- Print a Monday-through-Thursday calendar on US Letter landscape paper.
 
-## Scheduling Logic in the Portable Branch
+## Typical workflow
 
-Doctor rules are stored by doctor and weekday. A rule records whether the doctor is working, the assigned office, optional effective dates, and one of two recurrence modes:
+1. Start Dental Scheduler Mini and sign in as the shared scheduling user.
+2. Add the office's doctors and assistants and configure their eligible locations.
+3. Define each doctor's weekly or rotating office pattern.
+4. Optionally maintain reusable team templates for reference and repeated team setup.
+5. Choose a month and generate the office calendars.
+6. Review the generated doctor teams and assistant distribution.
+7. Make date-specific changes, assignments, and notes.
+8. Resolve any validation issues and publish the month.
+9. Preview and print the final schedule.
+10. Close the portable application with the supplied launcher so it shuts down cleanly and creates a backup.
 
-- `EVERY_WEEK` applies on every matching weekday.
-- `ROTATING` uses an anchor date, a 2- to 12-week rotation group, and a position within that rotation.
+## Screenshots
 
-For example, Doctor A can work at Office 1 every Monday, while Doctor B alternates between Office 1 and Office 2 on Thursdays. When a month is generated, the backend resolves each doctor's rule for each date, creates teams at the matching location, filters assistants by active status and eligible offices, and distributes available assistants across those teams. Managers can then edit a single date without changing the underlying recurring pattern.
-
-The implemented rule model does **not** provide a generic “Doctor B's location depends on Doctor A's assignment” constraint. Such relationships must currently be represented with explicit recurring rules or handled as manual schedule edits.
-
-Reusable team templates are also managed independently from generation in the current UI; generating a month does not automatically stamp a saved team template onto each date.
-
-## Application Preview
-
-The screenshots below show the manager-focused interface from the experimental `portable-h2-database` branch. They are not intended to represent every assistant, HR, manager, and administrator view available in the overall application design.
-
-### Portable login
+### Login
 
 ![DentalWave portable edition login](docs/Loginpage.png)
 
-### Portable manager dashboard
+### Manager dashboard
 
 ![DentalWave portable manager dashboard](docs/portableMenupage.png)
 
-<!-- TODO: Add a screenshot of the employee schedule or request workflow from the full application. -->
-<!-- TODO: Add a screenshot of the HR employee/request workflow from the full application. -->
-<!-- TODO: Add a screenshot of doctor workday and alternating-office rules. -->
-<!-- TODO: Add a screenshot of the monthly schedule editor. -->
-<!-- TODO: Add a screenshot of the landscape print preview. -->
-
 ## Architecture
 
-### Main application
+The portable application packages the React frontend inside the Spring Boot JAR. The browser, API, and database all run locally:
 
-```mermaid
-flowchart LR
-    Users[Assistants, HR, managers, and administrators] --> Browser[React 19 web client]
-    Employee[Employee mobile prototype] --> Mobile[Expo / React Native client]
-    Browser --> API[Spring Boot 3.4.6 REST API]
-    Mobile --> API
-    API --> Services[Scheduling and authentication services]
-    Services --> JPA[Spring Data JPA / Hibernate]
-    JPA --> PostgreSQL[(Private PostgreSQL database)]
+```text
+Manager's browser
+       |
+       v
+Spring Boot application on 127.0.0.1:8080
+  |-- packaged React manager interface
+  |-- JWT authentication and scheduling API
+  `-- Spring Data JPA / Hibernate
+                 |
+                 v
+       local file-backed H2 database
 ```
 
-PostgreSQL credentials, JWT secrets, and other environment-specific values are supplied outside source control. The repository contains the application and schema model, not a copy of the private operational database.
+The portable profile binds the server to the loopback interface, so it is available only on the computer running it. It does not expose the scheduler to other computers on the office network.
 
-### `portable-h2-database` alternative
+The repository still contains some backend, web-page, and mobile-prototype code inherited from the larger DentalWave application. Those retained modules are not part of the active manager-only Mini interface or the Windows portable workflow.
 
-```mermaid
-flowchart LR
-    Manager[Manager or administrator] --> Browser[Packaged React manager client]
-    Browser --> API[Spring Boot API and scheduling services]
-    Launcher[Windows launch, close, backup, and diagnostic scripts] --> API
-    API --> H2[(Local file-backed H2 database)]
-    API -->|serves packaged static assets| Browser
+## Technology
+
+- **Frontend:** React 19, React Router, Axios, Vite
+- **Backend:** Java 21, Spring Boot 3.4, Spring Web, Spring Security, Spring Data JPA
+- **Portable storage:** file-backed H2
+- **Authentication:** JWT and BCrypt password hashing
+- **Packaging:** Maven Wrapper, npm, Bash, Windows Batch, and PowerShell
+- **Testing:** JUnit 5, Spring Boot Test, Mockito, Node's test runner, and Python `unittest`
+
+## Windows portable version
+
+The portable package is designed for Windows x64 and includes:
+
+- the packaged application JAR;
+- a bundled Eclipse Temurin Java 21 runtime;
+- `OPEN DENTALWAVE.bat` and `CLOSE DENTALWAVE.bat` launchers;
+- backup and diagnostic tools;
+- local data, log, and backup folders; and
+- first-run setup for the shared `user` account.
+
+On first launch, the manager creates a password of at least 12 characters. The launcher generates the JWT and shutdown-control secrets locally, starts the application, verifies the API and packaged browser assets, and opens `http://127.0.0.1:8080`.
+
+Always close the application with `CLOSE DENTALWAVE.bat` before ejecting or moving the portable folder.
+
+### Local data and backups
+
+Portable data is stored inside the distribution:
+
+```text
+DentalWave-Portable/
+`-- OtherInfo/
+    |-- data/dentalwave.mv.db
+    |-- backups/
+    `-- logs/
 ```
 
-### Runtime profiles
+A clean close copies the H2 database into the backup folder and retains the seven newest dated backups. The backup tool refuses to copy the database while a verified DentalWave instance is running.
 
-| Mode | Frontend delivery | Persistence | Intended use |
-|---|---|---|---|
-| Main/development | Vite development server | Private or local PostgreSQL | Full-platform engineering work |
-| Portable branch | React assets served from the Spring Boot JAR | File-backed H2 beside the application | Alternative local Windows/USB-style use |
-| Production profile | Static frontend hosted separately or packaged before the Maven build | PostgreSQL | Server deployment foundation; not production-ready |
+Passwords are stored as BCrypt hashes. JWT and control secrets are generated into local files rather than committed to the repository.
 
-JPA currently manages schema creation/updates in development and portable modes. The production profile uses schema validation, but the repository does not include Flyway or Liquibase migrations. The portable profile is therefore a storage alternative within the shared Spring/JPA architecture, not the database design of the main application.
+## Build the Windows portable package
 
-## Engineering Challenges
-
-### Multi-role authorization
-
-The full platform separates assistant, HR, manager, and administrator responsibilities while also checking ownership of employee-specific profiles, schedules, requests, and notifications. Role membership alone is not treated as permission to read another employee's private resources.
-
-### Recurring multi-location rules
-
-The portable scheduler extension resolves both fixed weekly assignments and anchored multi-week rotations, including working and non-working rules with bounded effective dates. Conflicting active rules for the same doctor, weekday, and rotation position are rejected.
-
-### Editable generation without double-booking
-
-Monthly generation must produce a useful starting point while leaving room for human exceptions. The generator filters assistants by office eligibility, avoids assigning a person to multiple locations on one date, and persists each daily team independently so later edits do not rewrite the recurring doctor rules.
-
-### Print-constrained UI
-
-The print component is designed around a fixed 11 × 8.5 inch page rather than an unconstrained browser viewport. It adapts to four, five, or six calendar rows, compresses long names, groups multiple offices, and hides application controls when printing.
-
-### Portable local lifecycle
-
-The Windows scripts derive paths from their own location so drive-letter changes and spaces in folder names do not break startup. They generate local secrets, bind the server to loopback, verify both API and frontend readiness, stop only a verified DentalWave process, and back up the H2 file after shutdown.
-
-## Security
-
-The shared platform code includes the following safeguards:
-
-- JWT bearer authentication with a Base64 secret that must decode to at least 32 bytes.
-- BCrypt password hashing.
-- Method-level role authorization for scheduling, HR, and administrative operations.
-- Ownership checks for employee schedules, profiles, time-off requests, and notifications.
-- Configurable CORS allowlists rather than authenticated wildcard origins.
-- Production seed data disabled and production error details suppressed.
-
-The current portable checkout further restricts login to `ROLE_MANAGER` and `ROLE_ADMIN`, disables public self-registration, binds the server to `127.0.0.1`, and uses a separate generated control token for graceful shutdown. Those restrictions describe the portable branch and should not be read as the complete role model of `main`.
-
-The browser client stores its JWT in `localStorage`, and the project has not undergone a formal penetration test or production security review. These controls should be understood as application safeguards, not a claim of production-grade security.
-
-## Testing & Quality
-
-Verified locally on **August 30, 2026**:
-
-| Check | Result |
-|---|---|
-| Backend tests (`./mvnw test`) | **369 passed**, 0 failed, 0 errored, 0 skipped |
-| Frontend utility tests (`npm test`) | **16 passed**, 0 failed |
-| Portable launcher path tests | **8 passed**, 0 failed |
-| Frontend lint (`npm run lint`) | Completed with 0 errors and 6 React Hook dependency warnings |
-| Frontend production build (`npm run build`) | Passed |
-
-The backend suite contains controller, service, repository, security/ownership, doctor-rule, and portable-workflow tests and uses an isolated in-memory H2 test profile. Frontend automation currently covers date and print utilities rather than rendered components or full browser workflows. The Expo client has no automated test script in this checkout.
-
-Still requiring human verification:
-
-- Complete Windows startup, shutdown, recovery, and backup flow on the target Windows hardware.
-- Save/restart/reload behavior using a packaged portable build.
-- Preview-to-paper comparison on the target printer.
-- Broader browser end-to-end and accessibility testing.
-
-## Project Evolution and Branch Strategy
-
-DentalWave's main design is the broader employee-management and scheduling platform: assistant, HR, manager, and administrator roles; employee availability and profiles; time-off approval; notifications; and published schedules backed by PostgreSQL.
-
-Feedback from the office manager highlighted monthly schedule creation and printing as the highest-value day-to-day workflow. In response, the team explored a narrower manager scheduler and then the `portable-h2-database` branch. That branch introduced lightweight scheduling resources, explicit doctor location rules, manager-only web routes, packaged frontend delivery, local H2 persistence, and Windows lifecycle/backup scripts.
-
-This work represents iterative requirements gathering and an alternative deployment experiment. It does not mean the full platform was abandoned or replaced: `main` remains the overall design, while the portable branch asks whether a simpler locally stored edition could better fit one office's operational and cost constraints.
-
-## My Contributions
-
-Git history attributes the following areas to **Abigail Close**, alongside work from the rest of the project team:
-
-- Manager calendar population, monthly schedule generation, and the universal calendar workflow.
-- The printable manager calendar and later print-layout refinements.
-- Frontend/backend authentication integration and security-hardening work.
-- Automated repository, service, controller, security, and frontend utility testing contributions.
-- The manager-scheduler alternative, office-readiness changes, and deployment/portable configuration work.
-- Iteration on requirements after feedback from the scheduling workflow's intended users.
-
-This was a team project; these bullets describe supported areas of individual contribution rather than sole authorship of the application.
-
-## Tech Stack
-
-### Shared web and backend platform
-
-- **Frontend:** React 19.2.7, React Router 8.3.0, Vite 8.0.16, Axios 1.18.1
-- **Backend:** Java 21, Spring Boot 3.4.6, Spring Web, Spring Security, Spring Data JPA, Hibernate, Spring Mail
-- **Authentication:** JJWT 0.12.6, BCrypt
-- **Primary persistence:** PostgreSQL for the main application design
-- **Alternative persistence:** File-backed H2 on `portable-h2-database`
-- **Build and packaging:** Maven Wrapper, npm, Bash, Windows Batch, PowerShell
-- **Testing:** JUnit 5, Spring Boot Test, Spring Security Test, Mockito, Node's built-in test runner, Python `unittest`
-
-### Employee mobile prototype
-
-`DentalWave-mobile/` is an Expo 56 / React Native 0.85 employee-client prototype associated with the broader platform design. It contains screens and API clients for schedules, time-off requests, notifications, and profiles, but it is not part of the manager-focused portable build and has no automated test script in the current checkout.
-
-AWS is not used by the current implementation.
-
-## Getting Started
-
-### Prerequisites
+Build prerequisites:
 
 - Java 21
-- Node.js `^20.19.0` or `>=22.12.0` and npm (matching Vite's supported runtimes)
-- PostgreSQL for the standard development profile
-- Git
+- Node.js `^20.19.0` or `>=22.12.0`
+- npm
+- Python 3
+- Bash, `curl`, and `unzip`
 
-### Clone the repository
-
-Use normal HTTPS or SSH authentication; do not place a personal access token in the clone URL.
-
-```bash
-git clone https://github.com/SummerProject2026/assistant-scheduler.git
-cd assistant-scheduler
-```
-
-The default branch represents the full PostgreSQL-backed application design. To inspect the alternative portable work instead:
-
-```bash
-git switch portable-h2-database
-```
-
-### Configure the backend
-
-Create `DentalWave/src/main/resources/application-local.properties`. This path is ignored by Git and excluded from packaged artifacts.
-
-```properties
-spring.datasource.url=jdbc:postgresql://localhost:5432/dentalwave
-spring.datasource.username=YOUR_DATABASE_USERNAME
-spring.datasource.password=YOUR_DATABASE_PASSWORD
-
-# Generate with: openssl rand -base64 48
-app.jwt-secret=YOUR_BASE64_JWT_SECRET
-app.jwt-expiration-milliseconds=604800000
-app.cors-allowed-origins=http://localhost:5173
-
-# Development only: creates local roles and sample accounts.
-app.seed-data=true
-app.admin-user-password=CHOOSE_A_DEVELOPMENT_PASSWORD
-app.manager-user-username=manager
-app.manager-user-password=CHOOSE_A_DEVELOPMENT_PASSWORD
-app.hr-user-username=hr
-app.hr-user-password=CHOOSE_A_DEVELOPMENT_PASSWORD
-app.assistant-user-username=assistant
-app.assistant-user-password=CHOOSE_A_DEVELOPMENT_PASSWORD
-```
-
-Create the referenced PostgreSQL database before starting the application. Never reuse these development credentials or enable seed data in a deployed environment.
-
-### Run the application
-
-Start the backend:
-
-```bash
-cd DentalWave
-./mvnw spring-boot:run
-```
-
-In a second terminal, start the frontend:
+From the repository root:
 
 ```bash
 cd DentalWave-frontend
 npm ci
-npm run dev
-```
-
-Open `http://localhost:5173`. On the full application, use the account appropriate to the workflow being tested. On the current portable checkout, only the configured manager or an administrator can complete login. Development API requests default to `http://localhost:8080`; set `VITE_API_BASE_URL` if the backend uses another origin.
-
-### Run verification
-
-From the repository root, run each command group in its indicated directory:
-
-```bash
-cd DentalWave
-./mvnw test
-```
-
-```bash
-cd DentalWave-frontend
-npm test
-npm run lint
-npm run build
-```
-
-```bash
-python3 -m unittest discover -s portable/tests -p 'test_*.py'
-```
-
-### Build the Windows portable package
-
-This workflow belongs to `portable-h2-database`, not the main PostgreSQL deployment. Run all verification commands first, then from the repository root:
-
-```bash
+cd ..
 ./build-portable.sh
 ```
 
-The script builds the frontend, packages it into the Spring Boot JAR, downloads/caches an Eclipse Temurin Java 21 Windows x64 runtime when necessary, and creates `dist/DentalWave-Portable/`. On first Windows launch, the user creates a shared scheduling password of at least 12 characters. Application data and the seven most recent backups remain inside the portable folder.
+The build script:
 
-The build script packages with Maven tests skipped, so it is not a substitute for running `./mvnw test`. The resulting distribution still requires target-Windows and physical-printer validation before office use.
+1. runs the Windows launcher path tests;
+2. builds the React frontend;
+3. packages the frontend into the Spring Boot JAR;
+4. downloads and caches a Windows x64 Java 21 runtime; and
+5. creates `dist/DentalWave-Portable/`.
 
-### Server-style configuration
+The Maven packaging step skips backend tests, so run the verification commands separately before distributing a build.
 
-The `production` profile expects externally supplied PostgreSQL and JWT values:
+## Run locally with portable storage
 
-| Variable | Required | Purpose |
-|---|---:|---|
-| `SPRING_PROFILES_ACTIVE=production` | Yes | Activates production-profile settings |
-| `DB_URL` | Yes | PostgreSQL JDBC URL |
-| `DB_USERNAME` | Yes | Database account |
-| `DB_PASSWORD` | Yes | Database password |
-| `JWT_SECRET` | Yes | Base64 JWT signing secret |
-| `JWT_EXPIRATION_MS` | No | Token lifetime; defaults to seven days |
-| `CORS_ALLOWED_ORIGINS` | When cross-origin | Comma-separated frontend origins |
-| `VITE_API_BASE_URL` | When separately hosted | API origin embedded during the frontend build |
-| `MAIL_USERNAME`, `MAIL_PASSWORD` | Only for retained email workflows | SMTP credentials |
+The same portable profile can be run from source for development. The following Bash example creates a repository-local data folder; keep that folder out of commits:
 
-Because database migrations, deployment automation, monitoring, and a production security review are not present, this profile is a deployment foundation rather than evidence of a production deployment.
+```bash
+cd DentalWave-frontend
+npm ci
+npm run build
 
-## Project Structure
-
-```text
-assistant-scheduler/
-├── DentalWave/                  # Spring Boot API, domain model, security, and tests
-├── DentalWave-frontend/         # React web client; portable branch exposes manager routes
-├── DentalWave-mobile/           # Expo/React Native employee prototype
-├── docs/                        # Scheduler-lite architecture and manual test notes
-├── portable/windows/            # Portable-branch Windows lifecycle scripts
-├── portable/tests/              # Portable-branch path regression tests
-├── build-portable.sh            # Portable-branch distribution builder
-└── README.md
+cd ../DentalWave
+mkdir -p .local-data logs
+export JWT_SECRET="$(openssl rand -base64 48)"
+export PORTABLE_CONTROL_TOKEN="$(openssl rand -base64 32)"
+export PORTABLE_MANAGER_PASSWORD="choose-a-password-with-12-or-more-characters"
+export DENTALWAVE_DATA_PATH="$PWD/.local-data/dentalwave"
+export DENTALWAVE_PORTABLE_DATA_PATH="$PWD/.local-data"
+./mvnw spring-boot:run -Dspring-boot.run.profiles=portable
 ```
 
-No GitHub Actions workflow is currently included; verification is run locally.
+Open `http://127.0.0.1:8080` and sign in with username `user` and the first-run password. Do not commit local passwords, secrets, or database files.
 
-## Contributors
+The default Spring profile still supports PostgreSQL-backed development through an ignored `DentalWave/src/main/resources/application-local.properties`, but PostgreSQL is not required by the portable H2 distribution.
 
-Repository history shows contributions from:
+## Verification
 
-- Abigail Close
-- Kristika Sedai
-- Demaris Keleta
+Build the frontend before running backend integration tests because the Spring application expects the packaged `static/index.html` resource.
 
-## Lessons Learned
+```bash
+cd DentalWave-frontend
+npm ci
+npm test
+npm run lint
+npm run build
 
-- User feedback can justify exploring a focused edition without discarding the broader product design.
-- Deployment constraints shape architecture. Supporting both a private PostgreSQL system and a local embedded alternative affected persistence, packaging, authentication bootstrap, shutdown, and backup design.
-- Print output is a product surface, not an afterthought; fixed paper dimensions, content density, office grouping, and long names all require explicit engineering decisions.
-- Generated schedules still need human control. Recurring constraints provide a strong draft, while exceptions remain editable before publication.
+cd ../DentalWave
+./mvnw test
+
+cd ..
+python3 -m unittest discover -s portable/tests -p 'test_*.py'
+```
+
+The repository contains backend controller, service, repository, security, scheduling-rule, and portable-workflow tests. Frontend automation currently covers date and print utilities rather than full browser workflows.
+
+## Project structure
+
+```text
+Dental-Scheduler-Mini/
+|-- DentalWave/             Spring Boot API, persistence, security, and tests
+|-- DentalWave-frontend/    Active React manager interface
+|-- DentalWave-mobile/      Retained employee mobile prototype; not packaged
+|-- portable/windows/       Windows launch, shutdown, backup, and diagnostics
+|-- portable/tests/         Static Windows launcher/path tests
+|-- docs/                   Screenshots and focused architecture/test notes
+|-- build-portable.sh       Windows portable distribution builder
+`-- README.md
+```
+
+## Current limitations and release considerations
+
+- The supported office distribution is currently Windows x64. There is no packaged macOS launcher or bundled macOS runtime yet.
+- Portable mode is local to one computer and is not a shared network or cloud database service.
+- Hibernate currently manages H2 schema updates; the repository does not include Flyway or Liquibase migrations.
+- Reusable team templates are not automatically applied during monthly generation.
+- The retained Expo mobile prototype is not included in the manager-focused portable build.
+- Windows startup, shutdown, backup/recovery, restart persistence, and physical printing should be verified on the target office computer and printer before release.
+- No automated end-to-end browser suite or application auto-update mechanism is included.
