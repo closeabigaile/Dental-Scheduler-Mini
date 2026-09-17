@@ -118,7 +118,29 @@ The backend still contains account-backed employee, time-off, and notification m
 - **Portable storage:** file-backed H2
 - **Authentication:** JWT and BCrypt password hashing
 - **Packaging:** Maven Wrapper, npm, Bash, Windows Batch, and PowerShell
+- **Desktop reconstruction:** Tauri 2 shell with the existing React frontend
 - **Testing:** JUnit 5, Spring Boot Test, Mockito, Node's test runner, and Python `unittest`
+
+## Desktop reconstruction (Phase 1)
+
+A Tauri desktop shell is being developed alongside the existing Spring Boot/H2 application. Phase 1 packages the current React interface into a native desktop window, but it does not replace the REST backend, authentication, scheduling logic, or H2 storage. Tauri mode deliberately rejects REST requests, so the desktop shell cannot open or modify office data during this phase.
+
+Tauri development requires Node.js/npm, Rust, and the platform prerequisites listed in the [official Tauri prerequisites](https://v2.tauri.app/start/prerequisites/). From `DentalWave-frontend`:
+
+```bash
+npm ci
+npm run tauri:dev
+```
+
+Other useful frontend commands are:
+
+```bash
+npm run dev          # React/Vite in a browser
+npm run build        # React production assets
+npm run tauri:build  # Native desktop build for the current operating system
+```
+
+The existing Spring Boot/H2 application remains available through the source and Windows portable workflows documented below. Authenticated scheduler screens remain unavailable in the Phase 1 Tauri build because their REST services have not yet been replaced; run the existing web application separately when reference behavior is needed.
 
 ## Windows portable version
 

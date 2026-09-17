@@ -1,6 +1,8 @@
 import axios from 'axios'
 import { getToken, logout } from './AuthService'
 
+const isDesktopShell = import.meta.env.MODE === 'tauri'
+
 /**
  * Axios Request Interceptor
  *
@@ -28,6 +30,16 @@ axios.interceptors.request.use(
      * @returns Updated request configuration
      */
     function (config) {
+
+        // Phase 1 renders the existing UI but must remain isolated from the
+        // Spring/H2 reference application and any office data.
+        if (isDesktopShell) {
+            const error = new Error(
+                'The Phase 1 desktop shell does not connect to the scheduling backend.'
+            )
+            error.code = 'DESKTOP_BACKEND_UNAVAILABLE'
+            return Promise.reject(error)
+        }
 
         // Retrieve JWT token from local storage
         const token = getToken()

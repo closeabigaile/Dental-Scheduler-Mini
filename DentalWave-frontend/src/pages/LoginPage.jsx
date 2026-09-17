@@ -75,7 +75,11 @@ function LoginPage() {
 
         } catch (error) {
             console.error(error)
-            setError('Invalid username or password. Please try again.')
+            setError(
+                error.code === 'DESKTOP_BACKEND_UNAVAILABLE'
+                    ? 'Desktop preview only: scheduling data is unavailable during Phase 1.'
+                    : 'Invalid username or password. Please try again.'
+            )
         }
     }
 
