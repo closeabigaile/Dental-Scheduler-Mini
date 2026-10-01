@@ -1,5 +1,8 @@
 # DentalWave
 
+
+NOTE: THIS IS A TEST PROJECT FOR IMPROVING DENTALWAVE SCHEDULER PROGRAM 
+
 **A multi-role scheduling and employee-workflow platform built around the real constraints of a multi-location dental practice.**
 
 DentalWave's overall design connects assistants, HR staff, managers, and administrators around employee records, availability, time-off requests, notifications, and monthly schedules. The main application is designed around a React client, Spring Boot API, and a private PostgreSQL database configured outside source control.
