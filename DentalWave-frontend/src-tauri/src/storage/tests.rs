@@ -186,7 +186,7 @@ fn second_session_lock_released_on_close() {
 #[test]
 fn removal_before_save_is_latched_and_does_not_replace_data() {
     let (root, mut m, dir) = setup();
-    fs::rename(&dir, root.path().join("removed")).unwrap();
+    simulate_unavailable_storage(&dir, &root.path().join("removed"));
     assert_eq!(
         m.with_database(true, false, |_| -> AppResult<()> {
             panic!("must not save")
@@ -195,7 +195,7 @@ fn removal_before_save_is_latched_and_does_not_replace_data() {
         .code,
         "PORTABLE_STORAGE_REMOVED"
     );
-    fs::rename(root.path().join("removed"), &dir).unwrap();
+    restore_simulated_storage(&root.path().join("removed"), &dir);
     assert!(m.with_database(true, false, |_| Ok(())).is_err());
     assert!(!m.locations.local_path().exists());
     m.close(true).unwrap();
@@ -209,16 +209,32 @@ fn removal_during_save_never_acknowledges_success() {
         let tx = c.transaction().map_err(AppError::from_write_error)?;
         tx.execute("INSERT INTO offices(name) VALUES('During')", [])
             .map_err(AppError::from_write_error)?;
-        fs::rename(&dir, root.path().join("removed")).unwrap();
+        simulate_unavailable_storage(&dir, &root.path().join("removed"));
         tx.commit().map_err(AppError::from_write_error)
     });
     assert!(result.is_err());
     assert_eq!(m.status().access, "UNAVAILABLE");
     m.close(true).unwrap();
-    fs::rename(root.path().join("removed"), &dir).unwrap();
+    restore_simulated_storage(&root.path().join("removed"), &dir);
     m.open(Mode::Portable, Some(dir.clone())).unwrap();
     assert_eq!(validate::inspect(&dir.join(DATABASE)).unwrap(), 3);
     assert!(count(&mut m) <= 1);
+}
+// Windows refuses renaming a directory containing the held session lock. Remove
+// its metadata instead: this exercises the same unavailable-volume guard before
+// and after a real transaction, including withholding success after a commit.
+// Neither simulation is evidence of physical USB unplug durability.
+fn simulate_unavailable_storage(dir: &Path, removed: &Path) {
+    #[cfg(target_os = "windows")]
+    fs::rename(dir.join(location::METADATA), removed).unwrap();
+    #[cfg(not(target_os = "windows"))]
+    fs::rename(dir, removed).unwrap();
+}
+fn restore_simulated_storage(removed: &Path, dir: &Path) {
+    #[cfg(target_os = "windows")]
+    fs::rename(removed, dir.join(location::METADATA)).unwrap();
+    #[cfg(not(target_os = "windows"))]
+    fs::rename(removed, dir).unwrap();
 }
 #[test]
 fn replaced_file_identity_is_rejected() {
