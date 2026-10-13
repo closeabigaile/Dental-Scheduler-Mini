@@ -24,27 +24,50 @@ impl<'a> DoctorWorkRuleService<'a> {
   pub fn replace_rules(
     &self,
     doctor_id: i64,
-    rules: Vec<DoctorWorkRuleInput>,
+    mut rules: Vec<DoctorWorkRuleInput>,
   ) -> AppResult<Vec<DoctorWorkRule>> {
     let mut connection = self.database.connect()?;
-    Self::validate_doctor(&connection, doctor_id)?;
-    for rule in &rules {
+    let transaction = connection
+      .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
+      .map_err(AppError::from_write_error)?;
+    let connection = &transaction;
+    Self::validate_doctor(connection, doctor_id)?;
+    for rule in &mut rules {
+      Self::normalize_rule(rule);
       Self::validate_rule(&connection, doctor_id, rule)?;
     }
-    DoctorWorkRuleRepository::replace_rules(&mut connection, doctor_id, &rules)
+    crate::domain::validate_pattern_set(&rules)?;
+    let saved = DoctorWorkRuleRepository::replace_in_transaction(connection, doctor_id, &rules)?;
+    transaction.commit().map_err(AppError::from_write_error)?;
+    Ok(saved)
   }
 
-  pub fn create_rule(&self, input: DoctorWorkRuleInput) -> AppResult<DoctorWorkRule> {
-    let connection = self.database.connect()?;
+  pub fn create_rule(&self, mut input: DoctorWorkRuleInput) -> AppResult<DoctorWorkRule> {
+    Self::normalize_rule(&mut input);
+    let mut connection = self.database.connect()?;
+    let transaction = connection
+      .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
+      .map_err(AppError::from_write_error)?;
+    let connection = &transaction;
     let doctor_id = input.doctor.id;
     Self::validate_doctor(&connection, doctor_id)?;
     Self::validate_rule(&connection, doctor_id, &input)?;
-    DoctorWorkRuleRepository::create_rule(&connection, doctor_id, &input)
+    let mut all = DoctorWorkRuleRepository::list_rules(connection, doctor_id)?
+      .iter()
+      .map(crate::domain::pattern_input)
+      .collect::<Vec<_>>();
+    all.push(input.clone());
+    crate::domain::validate_pattern_set(&all)?;
+    let rule = DoctorWorkRuleRepository::create_rule(connection, doctor_id, &input)?;
+    transaction.commit().map_err(AppError::from_write_error)?;
+    Ok(rule)
   }
 
   pub fn delete_rule(&self, id: i64) -> AppResult<()> {
     if id <= 0 {
-      return Err(AppError::invalid_input("A valid doctor work rule id is required."));
+      return Err(AppError::invalid_input(
+        "A valid doctor work rule id is required.",
+      ));
     }
     DoctorWorkRuleRepository::delete_rule(&self.database.connect()?, id)
   }
@@ -59,9 +82,9 @@ impl<'a> DoctorWorkRuleService<'a> {
     if input.name.is_empty() {
       return Err(AppError::invalid_input("Rotation group name is required."));
     }
-    if input.number_of_weeks <= 0 {
+    if !(2..=12).contains(&input.number_of_weeks) {
       return Err(AppError::invalid_input(
-        "Rotation group weeks must be greater than zero.",
+        "Rotation length must be between 2 and 12 weeks.",
       ));
     }
     if !Self::looks_like_iso_date(&input.anchor_date) {
@@ -73,9 +96,7 @@ impl<'a> DoctorWorkRuleService<'a> {
   }
 
   fn validate_doctor(connection: &rusqlite::Connection, doctor_id: i64) -> AppResult<()> {
-    if doctor_id <= 0
-      || !ResourceRepository::exists(connection, ResourceKind::Doctor, doctor_id)?
-    {
+    if doctor_id <= 0 || !ResourceRepository::exists(connection, ResourceKind::Doctor, doctor_id)? {
       return Err(AppError::not_found("Doctor"));
     }
     Ok(())
@@ -112,10 +133,7 @@ impl<'a> DoctorWorkRuleService<'a> {
       ));
     }
     if let Some(office) = &rule.office {
-      if !crate::repositories::office_repository::OfficeRepository::exists(
-        connection,
-        office.id,
-      )? {
+      if !crate::repositories::office_repository::OfficeRepository::exists(connection, office.id)? {
         return Err(AppError::invalid_input(
           "Doctor work-rule office was not found.",
         ));
@@ -128,9 +146,11 @@ impl<'a> DoctorWorkRuleService<'a> {
           && rule.rotation_position.is_some_and(|position| position > 0) =>
       {
         let group_id = rule.rotation_group.as_ref().expect("checked above").id;
-        if DoctorWorkRuleRepository::get_rotation_group(connection, group_id)?.is_none() {
+        if DoctorWorkRuleRepository::get_rotation_group(connection, group_id)?.map_or(true, |g| {
+          rule.rotation_position.unwrap_or(0) > g.number_of_weeks
+        }) {
           return Err(AppError::invalid_input(
-            "Doctor rotation group was not found.",
+            "Doctor rotation group or position is invalid.",
           ));
         }
       }
@@ -153,17 +173,28 @@ impl<'a> DoctorWorkRuleService<'a> {
         ));
       }
     }
+    if let (Some(start), Some(end)) = (&rule.effective_start_date, &rule.effective_end_date) {
+      if end < start {
+        return Err(AppError::new(
+          "INVALID_PATTERN",
+          "Effective end date cannot precede start date.",
+        ));
+      }
+    }
     Ok(())
   }
 
+  fn normalize_rule(rule: &mut DoctorWorkRuleInput) {
+    if rule.work_status == "NOT_WORKING" {
+      rule.office = None;
+    }
+    if rule.recurrence_type == "EVERY_WEEK" {
+      rule.rotation_group = None;
+      rule.rotation_position = None;
+    }
+  }
+
   fn looks_like_iso_date(value: &str) -> bool {
-    let bytes = value.as_bytes();
-    bytes.len() == 10
-      && bytes[4] == b'-'
-      && bytes[7] == b'-'
-      && bytes
-        .iter()
-        .enumerate()
-        .all(|(index, byte)| index == 4 || index == 7 || byte.is_ascii_digit())
+    crate::domain::date(value).is_ok()
   }
 }

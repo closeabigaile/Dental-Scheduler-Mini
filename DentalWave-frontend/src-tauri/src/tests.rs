@@ -59,7 +59,7 @@ fn weekly_rule(doctor_id: i64, office_id: i64, day: &str) -> DoctorWorkRuleInput
 fn initializes_versioned_schema_and_passes_integrity_check() {
   let (_directory, database) = test_database();
   let info = database.info().expect("database info");
-  assert_eq!(info.schema_version, 1);
+  assert_eq!(info.schema_version, 3);
   assert_eq!(info.integrity_status, "ok");
   assert!(info.path.ends_with("development/scheduler.sqlite"));
 }
@@ -69,7 +69,7 @@ fn rejects_a_schema_newer_than_the_application_supports() {
   let (_directory, database) = test_database();
   let connection = rusqlite::Connection::open(database.path()).expect("open raw test database");
   connection
-    .execute("UPDATE schema_metadata SET schema_version = 2 WHERE id = 1", [])
+    .execute("UPDATE schema_metadata SET schema_version = 99 WHERE id = 1", [])
     .expect("set future schema version");
   drop(connection);
 
@@ -327,3 +327,12 @@ fn data_persists_after_database_is_closed_and_reopened() {
   );
   drop(directory);
 }
+
+#[path = "phase3_tests.rs"]
+mod phase3;
+
+#[path = "phase4_tests.rs"]
+mod phase4;
+
+#[path = "phase5_tests.rs"]
+mod phase5;

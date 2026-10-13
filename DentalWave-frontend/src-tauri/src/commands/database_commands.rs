@@ -5,10 +5,10 @@ use tauri::State;
 
 #[tauri::command]
 pub fn get_database_info(state: State<'_, AppState>) -> AppResult<DatabaseInfo> {
-  state.database.info()
+  state.with_database(false, false, |db| db.info())
 }
 
 #[tauri::command]
 pub fn check_database_integrity(state: State<'_, AppState>) -> AppResult<String> {
-  state.database.integrity_check()
+  state.with_database(false, false, |db| db.integrity_check())
 }

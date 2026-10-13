@@ -1,11 +1,14 @@
+import { isDesktop } from '../services/DesktopService'
 import { Link, useNavigate } from 'react-router'
-import { logout } from '../services/AuthService'
 
 function ManagerHeader() {
     const navigate = useNavigate()
-    function handleLogout() {
-        logout()
-        navigate('/login')
+    async function handleLogout() {
+        if (import.meta.env.MODE !== 'tauri') {
+            const { logout } = await import('../services/AuthService')
+            logout()
+            navigate('/login')
+        }
     }
 
     return (
@@ -15,15 +18,19 @@ function ManagerHeader() {
             </Link>
 
             <nav>
-                <Link to="/manager/dashboard">Dashboard</Link>
+                {!isDesktop && <Link to="/manager/dashboard">Dashboard</Link>}
                 <Link to="/manager/schedule">Monthly Schedule</Link>
+                {isDesktop && <Link to="/manager/offices">Offices</Link>}
+                {isDesktop && <Link to="/manager/teams">Teams</Link>}
+                {isDesktop && <Link to="/manager/doctor-patterns">Doctor Patterns</Link>}
                 <Link to="/manager/doctors">Doctors</Link>
                 <Link to="/manager/assistants">Assistants</Link>
+                {isDesktop && <Link to="/manager/data">Data & backups</Link>}
             </nav>
 
             <div className="header-actions">
 
-                <button className="logout-button" onClick={handleLogout}>Logout</button>
+                {isDesktop ? <span>Desktop scheduler</span> : <button className="logout-button" onClick={handleLogout}>Logout</button>}
             </div>
         </header>
     )

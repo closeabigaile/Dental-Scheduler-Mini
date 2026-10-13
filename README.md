@@ -2,7 +2,17 @@
 
 Dental Scheduler Mini is a focused, manager-operated scheduling application for an orthodontic office. It was derived from the larger DentalWave project and reduced to the workflows needed to prepare, review, publish, and print monthly doctor/assistant schedules.
 
-The primary distribution is a self-contained Windows application that opens in the user's normal web browser. It runs only on the local computer and stores its data in an embedded H2 database, avoiding a hosted database subscription.
+The intended distribution is now a **Windows USB application**: extract a ZIP onto a USB drive and launch `DentalSchedulerMini.exe`. The Tauri desktop app keeps its SQLite schedules and backups in `DentalSchedulerMiniData` beside the executable. The Windows computer needs WebView2; settings, logs and browser cache remain on that computer. The package is a development candidate pending Windows hardware acceptance.
+
+### Build or download the USB version
+
+Use GitHub Actions → **Windows USB application**. A successful run provides the **DentalSchedulerMini-Windows-USB** artifact containing the application ZIP and its SHA-256 file. Download the artifact, extract the application ZIP onto the USB, and follow `START HERE.txt`. The workflow runs on pushes to `codex/windows-usb-portable`; manual dispatch is available once the workflow is present on the repository's default branch.
+
+On a Windows build workstation, run `npm ci`, then `npm run build:windows:portable` from `DentalWave-frontend`. Output goes to `release/windows-usb/`. This builds the EXE without an installer, uses static C runtime linkage, audits embedded assets, and packages only the application files. No existing database is included or overwritten. On first launch, explicitly initialize the prefilled adjacent data folder or import a verified SQLite copy. Later launches follow the executable's location even when the drive letter changes.
+
+The existing NSIS installer remains an alternative. Earlier Phase 7 documents describe that installed-app candidate; the USB package supersedes it as the intended delivery format. GitHub builds establish compilation and automated-test evidence, not physical USB/printer acceptance or IT approval.
+
+The original browser-based Java/H2 portable application remains below as reference and rollback documentation. Its launchers, login, database paths and build script do not apply to the new USB desktop package.
 
 ## Purpose and audience
 
@@ -121,26 +131,13 @@ The backend still contains account-backed employee, time-off, and notification m
 - **Desktop reconstruction:** Tauri 2 shell with the existing React frontend
 - **Testing:** JUnit 5, Spring Boot Test, Mockito, Node's test runner, and Python `unittest`
 
-## Desktop reconstruction (Phase 1)
+## Desktop reconstruction (Phases 1–6)
 
-A Tauri desktop shell is being developed alongside the existing Spring Boot/H2 application. Phase 1 packages the current React interface into a native desktop window, but it does not replace the REST backend, authentication, scheduling logic, or H2 storage. Tauri mode deliberately rejects REST requests, so the desktop shell cannot open or modify office data during this phase.
+The Tauri desktop workspace persists offices, doctors, assistants, reusable teams, doctor work patterns, and monthly calendars in a separate development SQLite database. It includes deterministic pattern resolution, assignment validation, transactional schedule editing, save/reload, preview, and printing. SQLite schema version 3 upgrades earlier development schemas. Desktop screens use Tauri; the web application still uses Spring/REST.
 
-Tauri development requires Node.js/npm, Rust, and the platform prerequisites listed in the [official Tauri prerequisites](https://v2.tauri.app/start/prerequisites/). From `DentalWave-frontend`:
+From `DentalWave-frontend`, run `npm run tauri:dev` for local development. Node.js/npm, Rust and the [Tauri platform prerequisites](https://v2.tauri.app/start/prerequisites/) are required. Run `npm test`, `npm run test:desktop`, and `cargo test` from `src-tauri` for verification. See [Phase 3 domain rules and architecture](docs/phase-3-domain.md) and [verification report](docs/phase-3-verification.md), including the local macOS SDK workaround.
 
-```bash
-npm ci
-npm run tauri:dev
-```
-
-Other useful frontend commands are:
-
-```bash
-npm run dev          # React/Vite in a browser
-npm run build        # React production assets
-npm run tauri:build  # Native desktop build for the current operating system
-```
-
-The existing Spring Boot/H2 application remains available through the source and Windows portable workflows documented below. Authenticated scheduler screens remain unavailable in the Phase 1 Tauri build because their REST services have not yet been replaced; run the existing web application separately when reference behavior is needed.
+Phase 5 adds an explicit offline [H2-copy migration utility](migration/README.md), with [source mapping](docs/phase-5-mapping.md), dry runs, verified new SQLite outputs, and migration reports. See the [Phase 5 validation report](docs/phase-5-verification.md) for test results and limitations. The original Spring/H2 application remains available as the rollback/reference implementation. No production H2 or office data has been migrated. Phase 6 adds explicit local/portable data selection, metadata-based removable-drive discovery, protected sessions, read-only/removal handling, verified backups, controlled restore and safe close. See the [portable storage guide](docs/phase-6-portable-storage.md) and [Phase 6 report](docs/phase-6-verification.md). Phase 7 prepares the Windows NSIS candidate, isolates embedded desktop assets, hardens runtime permissions/paths, and adds diagnostics and security-review documentation. See the [Windows release guide](docs/phase-7-windows-release.md), [runtime manifest](docs/phase-7-runtime-manifest.md), and [verification report](docs/phase-7-verification.md). Windows artifact creation and hardware qualification remain pending; no office deployment or Phase 8 work has begun.
 
 ## Windows portable version
 

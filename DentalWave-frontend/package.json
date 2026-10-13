@@ -1,16 +1,21 @@
 {
   "name": "dentalwave-frontend",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.7.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "test": "node --test src/utils/printScheduleUtils.test.js",
+    "test": "node --test src/utils/*.test.js",
     "lint": "eslint .",
     "preview": "vite preview",
     "tauri:dev": "tauri dev",
-    "tauri:build": "tauri build"
+    "tauri:build": "tauri build",
+    "test:desktop": "node --experimental-vm-modules --test tests/desktop-services.test.js",
+    "build:desktop": "vite build --mode tauri",
+    "build:windows": "node scripts/build-windows.mjs",
+    "build:windows:portable": "node scripts/build-windows-portable.mjs",
+    "audit:desktop": "node scripts/audit-desktop.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.11.1",

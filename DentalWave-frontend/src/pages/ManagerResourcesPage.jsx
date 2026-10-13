@@ -1,3 +1,4 @@
+import { useStorage, clearUnsaved } from '../storage/context'
 import { useEffect, useState } from 'react'
 import ManagerHeader from '../components/ManagerHeader'
 import { getAllOffices } from '../services/OfficeService'
@@ -42,9 +43,21 @@ const friendlyDay = (day) => day[0] + day.slice(1).toLowerCase()
 
 function usesAdvancedPattern(rules) {
     return (rules || []).some((rule) =>
-        rule.recurrenceType === 'ROTATING'
-        && (rule.rotationGroup?.numberOfWeeks !== 2 || rule.rotationPosition > 2)
-    )
+        !rule.active || rule.effectiveStartDate || rule.effectiveEndDate || !DAYS.includes(rule.dayOfWeek)
+        || (rule.recurrenceType === 'ROTATING' && (
+            rule.rotationGroup?.numberOfWeeks !== 2 || rule.rotationPosition > 2
+            || rule.rotationGroup?.anchorDate !== STANDARD_ROTATION_ANCHOR
+            || !rule.rotationGroup?.active || rule.workStatus !== 'WORKING'
+        ))
+    ) || DAYS.some(day => {
+        const rows = (rules || []).filter(rule => rule.dayOfWeek === day)
+        const rotating = rows.filter(rule => rule.recurrenceType === 'ROTATING')
+        return rows.length > 2 || (rotating.length > 0 && (
+            rotating.length !== 2 || rows.length !== 2
+            || new Set(rotating.map(rule => rule.rotationGroup?.id)).size !== 1
+            || new Set(rotating.map(rule => rule.rotationPosition)).size !== 2
+        ))
+    })
 }
 
 function patternFromRules(rules) {
@@ -83,7 +96,7 @@ function patternFromRules(rules) {
     })
 }
 
-export default function ManagerResourcesPage({ type }) {
+export default function ManagerResourcesPage({ type }) {const storage = useStorage(); const readOnly = storage?.readOnly || false;
     const isDoctor = type === 'DOCTOR'
     const title = isDoctor ? 'Doctors' : 'Assistants'
     const [items, setItems] = useState([])
@@ -274,7 +287,7 @@ export default function ManagerResourcesPage({ type }) {
                 )
             }
 
-            resetForm()
+            clearUnsaved();resetForm()
             await load()
         } catch (requestError) {
             const fallbackMessage = form.id
@@ -303,8 +316,8 @@ export default function ManagerResourcesPage({ type }) {
         setError('')
         setSaving(true)
         try {
-            await deleteResource(form.id)
-            resetForm()
+            await deleteResource(form.id, type)
+            clearUnsaved();resetForm()
             await load()
         } catch (requestError) {
             setError(
@@ -362,7 +375,7 @@ export default function ManagerResourcesPage({ type }) {
                         )}
                     </section>
 
-                    <form className="lite-form doctor-details-form" onSubmit={submit}>
+                    <fieldset className="storage-readonly" disabled={readOnly}><form className="lite-form doctor-details-form" onSubmit={submit}>
                         <h2>{form.id ? 'Edit' : 'Add'} {isDoctor ? 'doctor' : 'assistant'}</h2>
 
                         <label>
@@ -593,7 +606,7 @@ export default function ManagerResourcesPage({ type }) {
                                 Remove doctor
                             </button>
                         )}
-                    </form>
+                    </form></fieldset>
                 </div>
             </main>
         </div>

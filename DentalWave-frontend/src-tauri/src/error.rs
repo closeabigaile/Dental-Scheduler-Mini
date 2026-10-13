@@ -9,6 +9,8 @@ pub type AppResult<T> = Result<T, AppError>;
 pub struct AppError {
   pub code: String,
   pub message: String,
+  #[serde(skip_serializing_if = "Vec::is_empty")]
+  pub conflicts: Vec<crate::domain::Conflict>,
 }
 
 impl AppError {
@@ -59,16 +61,17 @@ impl AppError {
     Self {
       code: code.into(),
       message: message.into(),
+      conflicts: Vec::new(),
     }
   }
 
   pub fn from_read_error(error: SqliteError) -> Self {
-    eprintln!("SQLite read failed: {error}");
+    if let Some(code)=storage_error(&error){return crate::storage::failure(code);}
     Self::database_unavailable()
   }
 
   pub fn from_write_error(error: SqliteError) -> Self {
-    eprintln!("SQLite write failed: {error}");
+    if let Some(code)=storage_error(&error){return crate::storage::failure(code);}
     match &error {
       SqliteError::SqliteFailure(details, _)
         if details.extended_code == ffi::SQLITE_CONSTRAINT_UNIQUE
@@ -93,3 +96,15 @@ impl Display for AppError {
 }
 
 impl std::error::Error for AppError {}
+
+fn storage_error(error:&SqliteError)->Option<&'static str> {
+  use rusqlite::ErrorCode::*;
+  match error.sqlite_error_code()? {
+    ReadOnly=>Some("DATABASE_READ_ONLY"),
+    SystemIoFailure|DiskFull=>Some("DATABASE_WRITE_FAILED"),
+    DatabaseCorrupt|NotADatabase=>Some("DATABASE_DAMAGED"),
+    CannotOpen=>Some("PORTABLE_STORAGE_REMOVED"),
+    DatabaseBusy|DatabaseLocked=>Some("DATABASE_ALREADY_IN_USE"),
+    _=>None,
+  }
+}

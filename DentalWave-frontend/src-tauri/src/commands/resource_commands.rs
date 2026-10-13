@@ -6,12 +6,12 @@ use tauri::State;
 
 #[tauri::command]
 pub fn get_doctors(state: State<'_, AppState>) -> AppResult<Vec<SchedulingResource>> {
-  ResourceService::new(&state.database).list(ResourceKind::Doctor)
+  state.with_database(false, false, |db| ResourceService::new(db).list(ResourceKind::Doctor))
 }
 
 #[tauri::command]
 pub fn get_doctor(id: i64, state: State<'_, AppState>) -> AppResult<SchedulingResource> {
-  ResourceService::new(&state.database).get(ResourceKind::Doctor, id)
+  state.with_database(false, false, |db| ResourceService::new(db).get(ResourceKind::Doctor, id))
 }
 
 #[tauri::command]
@@ -19,7 +19,7 @@ pub fn create_doctor(
   input: ResourceInput,
   state: State<'_, AppState>,
 ) -> AppResult<SchedulingResource> {
-  ResourceService::new(&state.database).create(ResourceKind::Doctor, input)
+  state.with_database(true, false, |db| ResourceService::new(db).create(ResourceKind::Doctor, input))
 }
 
 #[tauri::command]
@@ -28,22 +28,22 @@ pub fn update_doctor(
   input: ResourceInput,
   state: State<'_, AppState>,
 ) -> AppResult<SchedulingResource> {
-  ResourceService::new(&state.database).update(ResourceKind::Doctor, id, input)
+  state.with_database(true, false, |db| ResourceService::new(db).update(ResourceKind::Doctor, id, input))
 }
 
 #[tauri::command]
 pub fn delete_doctor(id: i64, state: State<'_, AppState>) -> AppResult<()> {
-  ResourceService::new(&state.database).delete(ResourceKind::Doctor, id)
+  state.with_database(true, true, |db| ResourceService::new(db).delete(ResourceKind::Doctor, id))
 }
 
 #[tauri::command]
 pub fn get_assistants(state: State<'_, AppState>) -> AppResult<Vec<SchedulingResource>> {
-  ResourceService::new(&state.database).list(ResourceKind::Assistant)
+  state.with_database(false, false, |db| ResourceService::new(db).list(ResourceKind::Assistant))
 }
 
 #[tauri::command]
 pub fn get_assistant(id: i64, state: State<'_, AppState>) -> AppResult<SchedulingResource> {
-  ResourceService::new(&state.database).get(ResourceKind::Assistant, id)
+  state.with_database(false, false, |db| ResourceService::new(db).get(ResourceKind::Assistant, id))
 }
 
 #[tauri::command]
@@ -51,7 +51,7 @@ pub fn create_assistant(
   input: ResourceInput,
   state: State<'_, AppState>,
 ) -> AppResult<SchedulingResource> {
-  ResourceService::new(&state.database).create(ResourceKind::Assistant, input)
+  state.with_database(true, false, |db| ResourceService::new(db).create(ResourceKind::Assistant, input))
 }
 
 #[tauri::command]
@@ -60,10 +60,10 @@ pub fn update_assistant(
   input: ResourceInput,
   state: State<'_, AppState>,
 ) -> AppResult<SchedulingResource> {
-  ResourceService::new(&state.database).update(ResourceKind::Assistant, id, input)
+  state.with_database(true, false, |db| ResourceService::new(db).update(ResourceKind::Assistant, id, input))
 }
 
 #[tauri::command]
 pub fn delete_assistant(id: i64, state: State<'_, AppState>) -> AppResult<()> {
-  ResourceService::new(&state.database).delete(ResourceKind::Assistant, id)
+  state.with_database(true, true, |db| ResourceService::new(db).delete(ResourceKind::Assistant, id))
 }

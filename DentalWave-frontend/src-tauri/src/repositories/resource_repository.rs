@@ -196,7 +196,6 @@ impl ResourceRepository {
       .offices
       .iter()
       .map(|office| office.id)
-      .chain(input.default_office.iter().map(|office| office.id))
       .collect::<BTreeSet<_>>();
     let insert_sql = format!(
       "INSERT INTO {} ({}, office_id) VALUES (?1, ?2)",

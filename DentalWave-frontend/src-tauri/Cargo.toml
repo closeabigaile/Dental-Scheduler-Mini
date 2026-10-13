@@ -1,9 +1,9 @@
 [package]
 name = "dental-scheduler-mini"
-version = "0.1.0"
-description = "Desktop shell for Dental Scheduler Mini"
+version = "0.7.0"
+description = "Offline desktop scheduling with local or portable SQLite storage"
 edition = "2021"
-rust-version = "1.77.2"
+rust-version = "1.89"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -14,10 +14,20 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 [build-dependencies]
 tauri-build = { version = "2.6.3", features = [] }
 
-[dependencies]
-tauri = { version = "2.11.3", features = [] }
-rusqlite = { version = "0.40.0", features = ["bundled"] }
-serde = { version = "1", features = ["derive"] }
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]
 
-[dev-dependencies]
+[dependencies]
+chrono = { version = "0.4", default-features = false, features = ["std"] }
+tauri = { version = "2.11.3", features = [] }
+rusqlite = { version = "0.40.0", features = ["bundled", "backup"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+uuid = { version = "1", features = ["v4"] }
+same-file = "1"
 tempfile = "3"
+
+[profile.release]
+strip = true
+debug = false

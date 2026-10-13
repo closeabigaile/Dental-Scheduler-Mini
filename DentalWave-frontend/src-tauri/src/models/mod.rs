@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+pub mod calendar;
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -158,4 +159,29 @@ fn default_true() -> bool {
 
 fn default_color() -> String {
   "#65a9b8".to_string()
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TeamInput {
+ pub name: String,
+ pub doctor: IdReference,
+ #[serde(default)] pub assistants: Vec<IdReference>,
+ pub default_office: Option<IdReference>,
+ #[serde(default = "default_true")] pub active: bool,
+ #[serde(default = "default_color")] pub color: String,
+ #[serde(default)] pub notes: String,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct Team {
+ pub id: i64,
+ pub name: String,
+ pub doctor: SchedulingResource,
+ pub assistants: Vec<SchedulingResource>,
+ pub default_office: Option<Office>,
+ pub active: bool,
+ pub color: String,
+ pub notes: String,
 }

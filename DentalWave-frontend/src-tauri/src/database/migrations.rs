@@ -1,4 +1,4 @@
-pub const SUPPORTED_SCHEMA_VERSION: i64 = 1;
+pub const SUPPORTED_SCHEMA_VERSION: i64 = 3;
 
 pub const VERSION_1: &str = r#"
 CREATE TABLE schema_metadata (
@@ -95,4 +95,75 @@ CREATE INDEX idx_assistants_active ON assistants(active);
 CREATE INDEX idx_doctor_rules_doctor ON doctor_work_rules(doctor_id);
 
 INSERT INTO schema_metadata (id, schema_version) VALUES (1, 1);
+"#;
+
+// Additive upgrade: existing resources and patterns retain their IDs and data.
+pub const VERSION_2: &str = r#"
+CREATE TABLE teams (
+ id INTEGER PRIMARY KEY AUTOINCREMENT,
+ name TEXT NOT NULL COLLATE NOCASE UNIQUE CHECK (length(trim(name)) > 0),
+ doctor_id INTEGER NOT NULL REFERENCES doctors(id) ON DELETE RESTRICT,
+ default_office_id INTEGER REFERENCES offices(id) ON DELETE RESTRICT,
+ active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0,1)),
+ color TEXT NOT NULL DEFAULT '#65a9b8',
+ notes TEXT NOT NULL DEFAULT '',
+ created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE team_assistants (
+ team_id INTEGER NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+ assistant_id INTEGER NOT NULL REFERENCES assistants(id) ON DELETE RESTRICT,
+ PRIMARY KEY (team_id, assistant_id)
+);
+CREATE INDEX idx_teams_doctor ON teams(doctor_id);
+CREATE INDEX idx_team_assistants_resource ON team_assistants(assistant_id);
+UPDATE schema_metadata SET schema_version = 2, updated_at = CURRENT_TIMESTAMP WHERE id = 1;
+"#;
+
+pub const VERSION_3: &str = r#"
+CREATE TABLE calendars (
+ id INTEGER PRIMARY KEY AUTOINCREMENT,
+ year INTEGER NOT NULL CHECK(year BETWEEN 1900 AND 9999),
+ month INTEGER NOT NULL CHECK(month BETWEEN 1 AND 12),
+ office_id INTEGER NOT NULL REFERENCES offices(id) ON DELETE RESTRICT,
+ published INTEGER NOT NULL DEFAULT 0 CHECK(published IN (0,1)),
+ revision INTEGER NOT NULL DEFAULT 0,
+ created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ UNIQUE(year, month, office_id)
+);
+CREATE TABLE calendar_days (
+ id INTEGER PRIMARY KEY AUTOINCREMENT,
+ calendar_id INTEGER NOT NULL REFERENCES calendars(id) ON DELETE CASCADE,
+ date TEXT NOT NULL,
+ notes TEXT NOT NULL DEFAULT '',
+ UNIQUE(calendar_id, date)
+);
+CREATE TABLE daily_assignments (
+ id INTEGER PRIMARY KEY AUTOINCREMENT,
+ day_id INTEGER NOT NULL REFERENCES calendar_days(id) ON DELETE CASCADE,
+ doctor_id INTEGER REFERENCES doctors(id) ON DELETE RESTRICT,
+ team_id INTEGER REFERENCES teams(id) ON DELETE RESTRICT,
+ label TEXT NOT NULL DEFAULT '',
+ CHECK(doctor_id IS NOT NULL OR (team_id IS NULL AND length(trim(label)) > 0))
+);
+CREATE TABLE assignment_assistants (
+ assignment_id INTEGER NOT NULL REFERENCES daily_assignments(id) ON DELETE CASCADE,
+ assistant_id INTEGER NOT NULL REFERENCES assistants(id) ON DELETE RESTRICT,
+ partial_day_note TEXT NOT NULL DEFAULT '' CHECK(length(partial_day_note) <= 40),
+ PRIMARY KEY(assignment_id, assistant_id)
+);
+CREATE TABLE calendar_generation_issues (
+ id INTEGER PRIMARY KEY AUTOINCREMENT,
+ calendar_id INTEGER NOT NULL REFERENCES calendars(id) ON DELETE CASCADE,
+ date TEXT NOT NULL,
+ code TEXT NOT NULL,
+ doctor_id INTEGER,
+ message TEXT NOT NULL
+);
+CREATE INDEX idx_days_date ON calendar_days(date);
+CREATE INDEX idx_assignments_day ON daily_assignments(day_id);
+CREATE INDEX idx_assignment_doctor ON daily_assignments(doctor_id);
+CREATE INDEX idx_assignment_assistant ON assignment_assistants(assistant_id);
+UPDATE schema_metadata SET schema_version = 3, updated_at = CURRENT_TIMESTAMP WHERE id = 1;
 "#;

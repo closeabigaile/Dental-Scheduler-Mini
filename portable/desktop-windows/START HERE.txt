@@ -1,0 +1,45 @@
+DENTAL SCHEDULER MINI — WINDOWS USB EDITION
+
+This is an unsigned development candidate for testing.
+
+1. Extract the ZIP onto your USB drive. Keep the DentalSchedulerMini folder
+   together. Do not run the application from inside the ZIP viewer.
+2. Double-click DentalSchedulerMini.exe. No scheduler installation is needed.
+   The Windows x64 computer must already have Microsoft Edge WebView2 Runtime.
+   If Windows or office security blocks the program, contact your support team.
+3. On first use, select "Set up a new portable data folder". The folder beside
+   the application is already filled in. Choose "Create new portable data folder"
+   only if you intentionally want an empty schedule database. To retain existing
+   schedules, use a verified SQLite copy or arrange migration from the old app.
+4. Add your offices, doctors, assistants and work patterns, then create a month.
+   Saved schedules and automatic backups stay in DentalSchedulerMiniData beside
+   the EXE. The complete folder can move between Windows computers. Drive letters
+   may change; the application locates the data relative to its EXE.
+5. Save your changes and close the application window. Allow its final backup to
+   finish. Then use Windows Safely Remove Hardware / Eject before unplugging.
+   Closing only the database is not enough when the EXE is running from the USB.
+
+Keep these files together:
+  DentalSchedulerMini.exe
+  dental-scheduler-portable.json
+  START HERE.txt
+  PACKAGE.json
+  WebView2Loader.dll (if supplied)
+  DentalSchedulerMiniData\ (created by you on first setup)
+    scheduler.sqlite
+    dental-scheduler-data.json
+    Backups\
+    other database lock, journal and recovery files
+
+BACKUPS AND UPDATES
+Keep a separate backup on another device: copies on this USB cannot protect
+against losing or breaking the USB. Close the app before copying the full folder.
+For updates, close the app and back up the full folder first. Replace only the
+application package files; never delete or overwrite DentalSchedulerMiniData.
+Do not install an older version over a database upgraded by a newer version.
+
+The app can leave settings, logs, recovery files and WebView2 cache on the Windows
+computer. This is a portable application and database, not a no-traces mode.
+Only use one running application with this data at a time. Network shares and
+cloud-sync folders are unsupported. Physical USB recovery and printing still need
+testing on your computer before relying on this candidate for office operations.

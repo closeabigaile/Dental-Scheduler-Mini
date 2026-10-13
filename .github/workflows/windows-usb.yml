@@ -1,0 +1,64 @@
+name: Windows USB application
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/windows-usb-portable]
+
+permissions:
+  contents: read
+
+jobs:
+  windows-usb:
+    runs-on: windows-2022
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: DentalWave-frontend
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: DentalWave-frontend/package-lock.json
+      - name: Prepare Rust
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+          rustup target add x86_64-pc-windows-msvc
+          rustc --version
+          cargo --version
+          node --version
+          npm --version
+      - name: Install locked frontend dependencies
+        run: npm ci
+      - name: Check JavaScript
+        run: |
+          npm test
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm run test:desktop
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm run lint
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Build embedded assets for Rust tests
+        run: npm run build:desktop
+      - name: Run Windows Rust tests
+        run: cargo test --locked --manifest-path src-tauri/Cargo.toml --lib
+      - name: Build USB ZIP
+        run: npm run build:windows:portable
+      - name: Upload downloadable USB package
+        uses: actions/upload-artifact@v4
+        with:
+          name: DentalSchedulerMini-Windows-USB
+          path: release/windows-usb/*
+          if-no-files-found: error
+          retention-days: 30
+      - name: Upload package audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: Windows-USB-build-audit
+          path: DentalWave-frontend/build-audit/
+          if-no-files-found: error
+          retention-days: 30

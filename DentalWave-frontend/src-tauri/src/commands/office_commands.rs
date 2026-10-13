@@ -6,17 +6,17 @@ use tauri::State;
 
 #[tauri::command]
 pub fn get_offices(state: State<'_, AppState>) -> AppResult<Vec<Office>> {
-  OfficeService::new(&state.database).list()
+  state.with_database(false, false, |db| OfficeService::new(db).list())
 }
 
 #[tauri::command]
 pub fn get_office(id: i64, state: State<'_, AppState>) -> AppResult<Office> {
-  OfficeService::new(&state.database).get(id)
+  state.with_database(false, false, |db| OfficeService::new(db).get(id))
 }
 
 #[tauri::command]
 pub fn create_office(input: OfficeInput, state: State<'_, AppState>) -> AppResult<Office> {
-  OfficeService::new(&state.database).create(input)
+  state.with_database(true, false, |db| OfficeService::new(db).create(input))
 }
 
 #[tauri::command]
@@ -25,10 +25,10 @@ pub fn update_office(
   input: OfficeInput,
   state: State<'_, AppState>,
 ) -> AppResult<Office> {
-  OfficeService::new(&state.database).update(id, input)
+  state.with_database(true, false, |db| OfficeService::new(db).update(id, input))
 }
 
 #[tauri::command]
 pub fn delete_office(id: i64, state: State<'_, AppState>) -> AppResult<()> {
-  OfficeService::new(&state.database).delete(id)
+  state.with_database(true, true, |db| OfficeService::new(db).delete(id))
 }

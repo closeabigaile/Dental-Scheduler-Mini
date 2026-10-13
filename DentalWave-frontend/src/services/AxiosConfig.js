@@ -31,11 +31,11 @@ axios.interceptors.request.use(
      */
     function (config) {
 
-        // Phase 1 renders the existing UI but must remain isolated from the
+        // Desktop operations must remain isolated from the
         // Spring/H2 reference application and any office data.
         if (isDesktopShell) {
             const error = new Error(
-                'The Phase 1 desktop shell does not connect to the scheduling backend.'
+                'This operation is not available in the desktop setup workspace.'
             )
             error.code = 'DESKTOP_BACKEND_UNAVAILABLE'
             return Promise.reject(error)

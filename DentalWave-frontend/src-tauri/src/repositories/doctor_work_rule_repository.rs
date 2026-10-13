@@ -61,22 +61,25 @@ impl DoctorWorkRuleRepository {
       .collect()
   }
 
+  #[cfg(test)]
   pub fn replace_rules(
     connection: &mut Connection,
     doctor_id: i64,
     rules: &[DoctorWorkRuleInput],
   ) -> AppResult<Vec<DoctorWorkRule>> {
     let transaction = connection.transaction().map_err(AppError::from_write_error)?;
-    transaction
-      .execute(
-        "DELETE FROM doctor_work_rules WHERE doctor_id = ?1",
-        [doctor_id],
-      )
-      .map_err(AppError::from_write_error)?;
-    for rule in rules {
-      Self::insert_rule(&transaction, doctor_id, rule)?;
-    }
+    let result = Self::replace_in_transaction(&transaction, doctor_id, rules)?;
     transaction.commit().map_err(AppError::from_write_error)?;
+    Ok(result)
+  }
+
+  pub fn replace_in_transaction(
+    connection: &Connection,
+    doctor_id: i64,
+    rules: &[DoctorWorkRuleInput],
+  ) -> AppResult<Vec<DoctorWorkRule>> {
+    connection.execute("DELETE FROM doctor_work_rules WHERE doctor_id = ?1", [doctor_id]).map_err(AppError::from_write_error)?;
+    for rule in rules { Self::insert_rule(connection, doctor_id, rule)?; }
     Self::list_rules(connection, doctor_id)
   }
 
