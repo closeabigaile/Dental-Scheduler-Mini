@@ -42,7 +42,7 @@ try {
     fs.mkdirSync(output, { recursive: true })
     const stamp = new Date().toISOString().replace(/[:.]/g, '-')
     const zip = path.join(output, `DentalSchedulerMini-${version}-windows-x64-usb-${stamp}.zip`)
-    run('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', '$ErrorActionPreference = "Stop"; Compress-Archive -LiteralPath $env.DENTAL_USB_STAGE -DestinationPath $env.DENTAL_USB_ZIP -CompressionLevel Optimal'], {
+    run('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', '$ErrorActionPreference = "Stop"; Compress-Archive -LiteralPath $env:DENTAL_USB_STAGE -DestinationPath $env:DENTAL_USB_ZIP -CompressionLevel Optimal'], {
         env: { ...process.env, DENTAL_USB_STAGE: folder, DENTAL_USB_ZIP: zip },
     })
     const hash = createHash('sha256').update(fs.readFileSync(zip)).digest('hex')
